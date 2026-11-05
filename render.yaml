@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: website-chatbot-poc
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: DEMO_ACCESS_CODE
+        generateValue: true
+      - key: DEFAULT_SITE_ID
+        sync: false
+      - key: DAILY_MESSAGE_CAP
+        value: "300"
+      - key: PRICE_IN_PER_1M
+        sync: false
+      - key: PRICE_OUT_PER_1M
+        sync: false
+      - key: PRICE_EMBED_PER_1M
+        sync: false
+      - key: MIN_SIMILARITY
+        value: "0.30"

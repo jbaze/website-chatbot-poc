@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Company: website chatbot proof of concept</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --brand: #2563eb; --ink: #111827; --muted: #6b7280; --line: #e5e7eb; --bg: #f9fafb; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; overflow-x: hidden; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: #fff; line-height: 1.55; }
+  a { color: var(--brand); }
+  .banner { background: #111827; color: #e5e7eb; font-size: 13px; text-align: center; padding: 7px 12px; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+  header.nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .brand { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  .brand i { display: inline-block; width: 26px; height: 26px; border-radius: 7px; background: var(--brand); }
+  nav.links { display: flex; gap: 18px; font-size: 14px; }
+  nav.links a { color: var(--muted); text-decoration: none; }
+  .hero { padding: 56px 0 36px; }
+  .hero h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.15; margin: 0 0 14px; }
+  .hero p { font-size: 18px; color: #374151; max-width: 620px; margin: 0 0 22px; }
+  .btn { display: inline-block; background: var(--brand); color: #fff; padding: 11px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; border: 0; cursor: pointer; font-size: 15px; }
+  .btn.secondary { background: #eef2ff; color: #3730a3; }
+  .btn:disabled { opacity: .6; cursor: default; }
+  section { padding: 32px 0; }
+  section h2 { font-size: 24px; margin: 0 0 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card { border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: #fff; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: #374151; font-size: 15px; }
+  .demo { background: var(--bg); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .bullets { padding-left: 20px; margin: 0; color: #374151; }
+  .bullets li { margin-bottom: 8px; }
+  form label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 6px; }
+  form input, form textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 10px; background: #fff; }
+  form textarea { min-height: 90px; resize: vertical; }
+  .hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+  .progress { margin-top: 14px; font-size: 15px; display: none; }
+  .progress.show { display: block; }
+  .bar { height: 8px; border-radius: 4px; background: #e5e7eb; overflow: hidden; margin-top: 8px; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--brand); transition: width .4s; }
+  .ok { color: #065f46; } .bad { color: #991b1b; }
+  .ask { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .ask button { background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  .ask button:hover { background: #f3f4f6; }
+  footer { padding: 28px 0 100px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+  footer p { margin: 4px 0; }
+  code { background: #f3f4f6; padding: 1px 5px; border-radius: 5px; font-size: 13px; }
+  @media (max-width: 600px) { nav.links { display: none; } .hero { padding: 36px 0 24px; } }
+</style>
+</head>
+<body>
+
+<div class="banner">Proof of concept by Blagojche Josifoski for your job post.</div>
+
+<div class="wrap">
+  <header class="nav">
+    <div class="brand"><i aria-hidden="true"></i> Your Company</div>
+    <nav class="links" aria-label="Site">
+      <a href="#services">Services</a>
+      <a href="#demo">Demo</a>
+      <a href="#try">Try your site</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>A placeholder landing page with a real AI chat assistant.</h1>
+    <p>This page stands in for your existing website. The chat bubble in the bottom right corner answers questions from the indexed website's own pages and links to where each answer came from.</p>
+    <button class="btn" type="button" onclick="window.SiteChat && SiteChat.open()">Open the chat</button>
+    <a class="btn secondary" href="#try" style="margin-left:8px">Try it on your website</a>
+    <div class="ask" id="ask" aria-label="Example questions"></div>
+  </section>
+</div>
+
+<section class="demo" id="demo">
+  <div class="wrap">
+    <h2>What this demo shows</h2>
+    <ul class="bullets">
+      <li><strong>Grounded answers with sources.</strong> Ask about the indexed website. The answer streams in and every claim links to the page it came from.</li>
+      <li><strong>Follow-ups and an honest fallback.</strong> Ask "what does that cost?" after a first question and it resolves. Ask something the site does not cover and the bot says so instead of inventing an answer.</li>
+      <li><strong>Works on any website.</strong> Paste a URL below with the access code from the proposal. The pages are indexed in about a minute, then you chat with your own site. The widget is a single script tag.</li>
+    </ul>
+  </div>
+</section>
+
+<div class="wrap">
+  <section id="services">
+    <h2>Our services</h2>
+    <div class="grid">
+      <div class="card"><h3>Consulting</h3><p>Placeholder copy for a service your company offers. The chatbot does not answer from this page, only from the indexed site.</p></div>
+      <div class="card"><h3>Implementation</h3><p>More placeholder copy. Everything on this page is neutral filler so the chat widget can be shown on a realistic layout.</p></div>
+      <div class="card"><h3>Support</h3><p>The widget sits on top of any existing site: WordPress, Webflow, React or static HTML. Nothing else on the page needs to change.</p></div>
+    </div>
+  </section>
+
+  <section id="try">
+    <h2>Try it on your own website</h2>
+    <div class="card">
+      <form id="site-form" autocomplete="off">
+        <label for="url">Website address</label>
+        <input id="url" name="url" type="url" placeholder="https://www.example.com" required maxlength="2000" inputmode="url">
+        <p class="hint">Public site, up to 30 pages. Please only submit a site you own or are allowed to index.</p>
+
+        <label for="faq">FAQ text (optional)</label>
+        <textarea id="faq" name="faq" placeholder="Paste questions and answers that are not on the website yet. One Q and A per paragraph." maxlength="20000"></textarea>
+
+        <label for="code">Access code</label>
+        <input id="code" name="code" type="password" placeholder="From the proposal message" required maxlength="200" autocomplete="off">
+
+        <div style="margin-top:16px"><button class="btn" type="submit" id="submit">Index this website</button></div>
+      </form>
+      <div class="progress" id="progress" aria-live="polite">
+        <div id="progress-text"></div>
+        <div class="bar"><i id="bar"></i></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>This is a proof of concept, not production software. No real company is represented on this page.</p>
+    <p>Embed on any site with one tag: <code>&lt;script src="/widget.js" data-site="..." data-title="Ask us" defer&gt;&lt;/script&gt;</code></p>
+  </div>
+</footer>
+
+<script src="/widget.js" data-site="{{DEFAULT_SITE_ID}}" data-title="Ask us" data-color="#2563eb" defer></script>
+<script>
+(function () {
+  var form = document.getElementById('site-form');
+  var progress = document.getElementById('progress');
+  var text = document.getElementById('progress-text');
+  var bar = document.getElementById('bar');
+  var submit = document.getElementById('submit');
+  var ask = document.getElementById('ask');
+  var timer = null;
+
+  var examples = ['What does this website offer?', 'How can I contact the team?', 'What does that cost?'];
+  examples.forEach(function (q) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = q;
+    b.addEventListener('click', function () {
+      if (!window.SiteChat) return;
+      SiteChat.open();
+      var panel = document.querySelector('[data-website-chatbot]').shadowRoot;
+      var input = panel.querySelector('textarea');
+      input.value = q;
+      panel.querySelector('form').requestSubmit();
+    });
+    ask.appendChild(b);
+  });
+
+  function show(msg, cls, pct) {
+    progress.classList.add('show');
+    text.textContent = msg;
+    text.className = cls || '';
+    bar.style.width = (pct || 0) + '%';
+  }
+
+  function poll(siteId) {
+    fetch('/api/sites/' + siteId).then(function (r) { return r.json(); }).then(function (s) {
+      var found = s.pages_found || 0, done = s.pages_done || 0;
+      if (s.status === 'ready') {
+        clearInterval(timer);
+        show('Indexed ' + done + ' page' + (done === 1 ? '' : 's') + ' into ' + s.chunk_count + ' passages. The chat now answers about ' + s.root_url + '.', 'ok', 100);
+        submit.disabled = false;
+        if (window.SiteChat) { SiteChat.setSite(siteId, { reset: true }); SiteChat.open(); }
+      } else if (s.status === 'failed') {
+        clearInterval(timer);
+        show('Indexing failed: ' + (s.error || 'unknown error'), 'bad', 0);
+        submit.disabled = false;
+      } else {
+        var pct = found ? Math.min(95, Math.round((done / found) * 100)) : 5;
+        show(s.status === 'queued' ? 'Starting the crawl...' : 'Indexing page ' + done + (found ? ' of ' + found : '') + '...', '', pct);
+      }
+    }).catch(function () { show('Lost contact with the server while indexing. It may still finish.', 'bad', 0); });
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    submit.disabled = true;
+    show('Checking the address...', '', 2);
+    fetch('/api/sites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: document.getElementById('url').value.trim(),
+        faq_text: document.getElementById('faq').value.trim() || null,
+        access_code: document.getElementById('code').value
+      })
+    }).then(function (r) {
+      return r.json().then(function (j) { return { ok: r.ok, body: j }; });
+    }).then(function (res) {
+      if (!res.ok) {
+        var d = res.body && res.body.detail;
+        show(typeof d === 'string' ? d : 'That request was not accepted.', 'bad', 0);
+        submit.disabled = false;
+        return;
+      }
+      var siteId = res.body.site_id;
+      show('Crawl started...', '', 5);
+      clearInterval(timer);
+      timer = setInterval(function () { poll(siteId); }, 2000);
+      poll(siteId);
+    }).catch(function () {
+      show('Could not reach the server. Please try again.', 'bad', 0);
+      submit.disabled = false;
+    });
+  });
+})();
+</script>
+</body>
+</html>
