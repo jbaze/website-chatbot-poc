@@ -13,6 +13,8 @@ services:
         sync: false
       - key: LLM_MODEL
         value: "gpt-6-luna"
+      - key: LLM_REASONING_EFFORT
+        value: "none"
       - key: EMBEDDING_MODEL
         value: text-embedding-3-small
       - key: SUPABASE_URL
@@ -35,3 +37,5 @@ services:
         value: "0.02"
       - key: MIN_SIMILARITY
         value: "0.25"
+      - key: REWRITE_ON_MISS
+        value: "true"

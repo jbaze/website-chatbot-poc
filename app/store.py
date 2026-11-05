@@ -21,6 +21,7 @@ class Store(Protocol):
     async def get_site(self, site_id: str) -> dict | None: ...
     async def update_site(self, site_id: str, **fields: Any) -> None: ...
     async def add_page(self, site_id: str, url: str, title: str) -> str: ...
+    async def first_page_title(self, site_id: str) -> str | None: ...
     async def add_chunks(self, chunks: list[dict]) -> None: ...
     async def match_chunks(self, site_id: str, embedding: list[float], count: int, min_similarity: float) -> list[dict]: ...
     async def ensure_session(self, session_id: str, site_id: str, ip_hash: str) -> None: ...
@@ -62,6 +63,12 @@ class MemoryStore:
     async def update_site(self, site_id: str, **fields: Any) -> None:
         if site_id in self.sites:
             self.sites[site_id].update(fields)
+
+    async def first_page_title(self, site_id: str) -> str | None:
+        for page in self.pages.values():
+            if page["site_id"] == site_id:
+                return page["title"]
+        return None
 
     async def add_page(self, site_id: str, url: str, title: str) -> str:
         page_id = str(uuid.uuid4())
@@ -137,6 +144,11 @@ class SupabaseStore:
     async def update_site(self, site_id: str, **fields: Any) -> None:
         c = await self.client()
         await c.table("sites").update(fields).eq("id", site_id).execute()
+
+    async def first_page_title(self, site_id: str) -> str | None:
+        c = await self.client()
+        res = await c.table("pages").select("title").eq("site_id", site_id).order("fetched_at").limit(1).execute()
+        return res.data[0]["title"] if res.data else None
 
     async def add_page(self, site_id: str, url: str, title: str) -> str:
         c = await self.client()

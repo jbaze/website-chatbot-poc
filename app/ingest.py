@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import logging
 import sys
 import time
@@ -33,9 +34,18 @@ def _pick_contact(links: list[str]) -> str | None:
 
 
 async def _embed_and_store(
-    store: Store, provider: LLMProvider, site_id: str, page_id: str, chunks, settings: Settings
+    store: Store, provider: LLMProvider, site_id: str, page_id: str, chunks, settings: Settings, seen: set[str]
 ) -> int:
+    """Embed and store chunks, skipping content already stored for this site (/ and /index.html)."""
     rows: list[dict] = []
+    fresh = []
+    for c in chunks:
+        h = hashlib.sha1(c.content.encode("utf-8")).hexdigest()
+        if h in seen:
+            continue
+        seen.add(h)
+        fresh.append(c)
+    chunks = fresh
     for i in range(0, len(chunks), EMBED_BATCH):
         batch = chunks[i : i + EMBED_BATCH]
         result = await provider.embed([c.content for c in batch])
@@ -71,6 +81,7 @@ async def ingest_site(
     client = client or httpx.AsyncClient(headers={"User-Agent": settings.user_agent})
     pages_done = 0
     chunk_total = 0
+    seen: set[str] = set()
     contact_url: str | None = None
     try:
         crawler = Crawler(
@@ -90,7 +101,7 @@ async def ingest_site(
             )
             page_id = await store.add_page(site_id, page.url, title or page.url)
             if chunks:
-                chunk_total += await _embed_and_store(store, provider, site_id, page_id, chunks, settings)
+                chunk_total += await _embed_and_store(store, provider, site_id, page_id, chunks, settings, seen)
             pages_done += 1
             await store.update_site(
                 site_id,
@@ -105,7 +116,7 @@ async def ingest_site(
             sections = [Section(heading="FAQ", text=faq_text.strip())]
             chunks = chunk_sections(sections, faq_url, "FAQ", settings.chunk_tokens, settings.chunk_overlap_tokens)
             page_id = await store.add_page(site_id, faq_url, "FAQ")
-            chunk_total += await _embed_and_store(store, provider, site_id, page_id, chunks, settings)
+            chunk_total += await _embed_and_store(store, provider, site_id, page_id, chunks, settings, seen)
             pages_done += 1
 
         if chunk_total == 0:

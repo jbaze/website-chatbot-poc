@@ -32,6 +32,17 @@ CONDENSE_PROMPT = (
 )
 
 
+REWRITE_PROMPT = """You rewrite a website visitor's message into one specific, standalone question for searching that website's pages.
+Website title: {title}
+Website address: {url}
+Rules:
+- Name the website or company instead of "they", "you", "this page" or "this site".
+- Keep the visitor's intent. Do not add facts or guess what the site contains.
+- If the website title is not in English, write the question in the title's language.
+- If the message is not about this website or its company (for example general knowledge, recipes, weather, sport), return the message exactly as given.
+Reply with the question only."""
+
+
 def sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
@@ -105,6 +116,7 @@ async def stream_chat(
     usage = Usage()
     embed_tokens = 0
     condensed = message
+    rewritten: str | None = None
     outcome = "error"
     answer = ""
     sources: list[dict] = []
@@ -138,6 +150,27 @@ async def stream_chat(
         emb = await provider.embed([condensed])
         embed_tokens += emb.tokens
         rows = await store.match_chunks(site_id, emb.vectors[0], settings.match_count, settings.min_similarity)
+
+        # 2b. Second pass for vague or cross-language messages ("what do they do?"):
+        # rewrite into a specific question about this site and search once more.
+        # This is one small chat call; the answer model is still never called without context.
+        if not rows and settings.rewrite_on_miss:
+            title = await store.first_page_title(site_id) or site["root_url"]
+            result = await provider.chat(
+                [
+                    {"role": "system", "content": REWRITE_PROMPT.format(title=title, url=site["root_url"])},
+                    {"role": "user", "content": condensed},
+                ],
+                max_tokens=120,
+            )
+            usage.add(result.usage)
+            candidate = result.text.strip().strip('"')[: settings.max_message_chars]
+            if candidate and candidate != condensed:
+                rewritten = candidate
+                emb = await provider.embed([rewritten])
+                embed_tokens += emb.tokens
+                rows = await store.match_chunks(site_id, emb.vectors[0], settings.match_count, settings.min_similarity)
+
         chunks, sources = select_chunks(rows, settings.keep_chunks)
         retrieval_ms = ms(t_ret)
         debug_chunks = [
@@ -188,7 +221,7 @@ async def stream_chat(
             "first_token_ms": first_token_ms,
             "total_ms": total_ms,
             "model": provider.model if outcome == "answered" else None,
-            "debug": {"condensed_query": condensed, "chunks": debug_chunks},
+            "debug": {"condensed_query": condensed, "rewritten_query": rewritten, "chunks": debug_chunks},
         }
         yield sse("done", done)
     except Exception:  # noqa: BLE001 - friendly error for the visitor, detail in the logs

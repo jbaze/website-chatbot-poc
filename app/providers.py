@@ -53,7 +53,14 @@ class LLMProvider(Protocol):
 
 
 class OpenAIProvider:
-    def __init__(self, api_key: str, model: str, embedding_model: str, dimensions: int = 1536) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        embedding_model: str,
+        dimensions: int = 1536,
+        reasoning_effort: str | None = None,
+    ) -> None:
         from openai import AsyncOpenAI
 
         if not api_key:
@@ -64,6 +71,8 @@ class OpenAIProvider:
         self.model = model
         self.embedding_model = embedding_model
         self.dimensions = dimensions
+        # Reasoning models burn max_completion_tokens on hidden reasoning unless told not to.
+        self._extra: dict = {"reasoning_effort": reasoning_effort} if reasoning_effort else {}
 
     async def chat_stream(self, messages: list[dict], max_tokens: int) -> AsyncIterator[StreamChunk]:
         stream = await self._client.chat.completions.create(
@@ -72,6 +81,7 @@ class OpenAIProvider:
             max_completion_tokens=max_tokens,
             stream=True,
             stream_options={"include_usage": True},
+            **self._extra,
         )
         async for event in stream:
             if getattr(event, "usage", None) is not None:
@@ -85,7 +95,7 @@ class OpenAIProvider:
 
     async def chat(self, messages: list[dict], max_tokens: int) -> ChatResult:
         resp = await self._client.chat.completions.create(
-            model=self.model, messages=messages, max_completion_tokens=max_tokens
+            model=self.model, messages=messages, max_completion_tokens=max_tokens, **self._extra
         )
         text = (resp.choices[0].message.content or "").strip() if resp.choices else ""
         usage = (
@@ -122,6 +132,7 @@ class FakeProvider:
         self.model = model
         self.embedding_model = embedding_model
         self.chat_calls = 0
+        self.stream_calls = 0
         self.embed_calls = 0
         self.last_messages: list[dict] = []
 
@@ -166,6 +177,7 @@ class FakeProvider:
 
     async def chat_stream(self, messages: list[dict], max_tokens: int) -> AsyncIterator[StreamChunk]:
         self.chat_calls += 1
+        self.stream_calls += 1
         self.last_messages = messages
         text = self._reply(messages)
         words = text.split(" ")
@@ -182,4 +194,5 @@ def build_provider(settings) -> LLMProvider:
         model=settings.llm_model,
         embedding_model=settings.embedding_model,
         dimensions=settings.embedding_dimensions,
+        reasoning_effort=settings.llm_reasoning_effort or None,
     )

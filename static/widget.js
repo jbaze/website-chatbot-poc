@@ -269,6 +269,7 @@
     var html = '<summary>How this answer was made</summary><dl>' +
       '<dt>Outcome</dt><dd>' + escapeHtml(done.outcome || '') + '</dd>' +
       '<dt>Condensed question</dt><dd></dd>' +
+      '<dt>Rewritten for search</dt><dd></dd>' +
       '<dt>Retrieval</dt><dd>' + fmtMs(done.retrieval_ms) + '</dd>' +
       '<dt>First token</dt><dd>' + fmtMs(done.first_token_ms) + '</dd>' +
       '<dt>Total</dt><dd>' + fmtMs(done.total_ms) + '</dd>' +
@@ -278,6 +279,8 @@
       '</dl>';
     d.innerHTML = html;
     d.querySelectorAll('dd')[1].textContent = dbg.condensed_query || '';
+    var rw = d.querySelectorAll('dd')[2];
+    if (dbg.rewritten_query) { rw.textContent = dbg.rewritten_query; } else { rw.previousElementSibling.remove(); rw.remove(); }
     var chunks = dbg.chunks || [];
     if (!chunks.length) {
       var none = document.createElement('div');

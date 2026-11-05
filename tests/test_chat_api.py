@@ -65,7 +65,7 @@ async def test_health(client):
     assert r.json()["status"] == "ok"
 
 
-async def test_no_context_fallback_does_not_call_llm(client, store, provider):
+async def test_no_context_fallback_does_not_generate_an_answer(client, store, provider):
     site_id = await seed_site(store, provider, with_chunks=False)
     body = {"site_id": site_id, "session_id": str(uuid.uuid4()), "message": "What is the capital of France?"}
     r = await client.post("/api/chat", json=body)
@@ -76,10 +76,26 @@ async def test_no_context_fallback_does_not_call_llm(client, store, provider):
     assert names == ["meta", "token", "done"]
     assert "couldn't find that on this website" in events[1][1]["text"]
     assert "hello@site.test" in events[1][1]["text"]
-    assert events[2][1]["outcome"] == "no_context"
-    assert events[2][1]["tokens_out"] == 0
-    assert provider.chat_calls == 0
-    assert provider.embed_calls == 1  # retrieval embedding only
+    done = events[2][1]
+    assert done["outcome"] == "no_context"
+    assert done["model"] is None
+    # one small rewrite call and a second embedding, but the answer model never streamed
+    assert provider.stream_calls == 0
+    assert provider.chat_calls == 1
+    assert provider.embed_calls == 2
+    assert done["debug"]["rewritten_query"].startswith("Standalone question:")
+
+
+async def test_no_context_without_rewrite_makes_no_llm_call(settings, store, provider):
+    settings.rewrite_on_miss = False
+    app = create_app(settings=settings, store=store, provider=provider)
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as c:
+            site_id = await seed_site(store, provider, with_chunks=False)
+            r = await c.post("/api/chat", json={"site_id": site_id, "session_id": str(uuid.uuid4()), "message": "What is the capital of France?"})
+    done = parse_sse(r.text)[-1][1]
+    assert done["outcome"] == "no_context" and done["tokens_out"] == 0
+    assert provider.chat_calls == 0 and provider.embed_calls == 1
     stored = [m for m in store.messages if m["role"] == "assistant"]
     assert stored[-1]["outcome"] == "no_context"
 

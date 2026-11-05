@@ -56,3 +56,28 @@ async def test_ingest_marks_failed_when_nothing_readable(store, provider, settin
     site = await store.get_site(site_id)
     assert site["status"] == "failed"
     assert site["error"]
+
+
+async def test_identical_pages_are_stored_once(store, provider, settings, monkeypatch):
+    """/ and /index.html usually serve the same HTML; the passages must not be duplicated."""
+    import app.crawler as crawler_mod
+
+    monkeypatch.setattr(crawler_mod, "validate_url", allow_all)
+    html = HTML.replace("</nav>", '<a href="/index.html">Home</a></nav>')
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path in ("/", "/index.html", "/contact"):
+            return httpx.Response(200, text=html, headers={"content-type": "text/html"})
+        return httpx.Response(404)
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    settings.crawl_delay_seconds = 0
+    site_id = await store.create_site("https://acme.test/")
+    await ingest_site(site_id, "https://acme.test/", None, store, provider, settings, client=client)
+
+    site = await store.get_site(site_id)
+    assert site["status"] == "ready"
+    assert site["pages_done"] == 3
+    contents = [c["content"] for c in store.chunks if c["site_id"] == site_id]
+    assert len(contents) == len(set(contents))
+    assert all(c["url"] == "https://acme.test/" for c in store.chunks if c["site_id"] == site_id)

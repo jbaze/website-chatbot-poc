@@ -17,7 +17,7 @@ This is evidence that the approach works, not production software. See "What cha
 ```
 Visitor's browser
   └─ widget.js (Shadow DOM)  ──SSE──>  FastAPI
-                                          ├─ /api/chat     condense → embed → match_chunks → stream answer
+                                          ├─ /api/chat     condense → embed → match_chunks → (rewrite and retry on miss) → stream answer
                                           ├─ /api/sites    validate URL → background crawl → chunk → embed → store
                                           └─ static: /  (demo page), /widget.js
                                        Supabase Postgres + pgvector
@@ -30,7 +30,7 @@ Code map:
 | Path | What it does |
 |---|---|
 | `app/main.py` | FastAPI app, routes, CORS, request id middleware, rate limits |
-| `app/chat.py` | Condense, retrieve, no-context fallback, streaming answer, SSE framing |
+| `app/chat.py` | Condense, retrieve, second-pass rewrite on a miss, no-context fallback, streaming answer, SSE framing |
 | `app/ingest.py` | Crawl, extract, chunk, embed, store. Also the preload CLI |
 | `app/crawler.py` | Sitemap first, then breadth first. Same site, 30 pages, depth 3, robots.txt, redirect checks |
 | `app/extract.py` | trafilatura with a BeautifulSoup fallback, split into heading sections |
@@ -88,6 +88,8 @@ pytest
 | `DAILY_MESSAGE_CAP` | Global cap on user messages per day, counted in `chat_messages`. |
 | `PRICE_IN_PER_1M`, `PRICE_OUT_PER_1M`, `PRICE_EMBED_PER_1M` | USD per 1M tokens for cost estimates, from the current price list. |
 | `MIN_SIMILARITY` | Retrieval threshold. 0.25 was tuned on blagojche.dev with text-embedding-3-small: off-topic questions scored at most 0.21, on-topic ones at least 0.28. |
+| `REWRITE_ON_MISS` | Default true. When nothing clears the threshold, one small chat call rewrites the message into a specific question about the site (in the site's language) and retrieval runs once more. Vague openers like "what do they do?" score about 0.19 on their own and 0.5 to 0.7 after the rewrite. Off-topic messages come back unchanged and still get the fallback. Set to false for the strict mode where a miss makes no chat call at all. |
+| `LLM_REASONING_EFFORT` | Default `none`. gpt-6-luna is a reasoning model and otherwise spends the output budget on hidden reasoning before the first visible token. Set empty for models that reject the parameter. |
 | `LLM_PROVIDER`, `STORE` | `openai`/`fake` and `supabase`/`memory`. Defaults pick the real ones. |
 
 ## Embed on any website
@@ -113,10 +115,10 @@ Add the website's origin to `ALLOWED_ORIGINS`. The widget uses Shadow DOM, so th
 - Indexing requires the access code. Submitted URLs must be http or https and must not resolve to loopback, private, link-local or cloud metadata ranges. Every redirect is checked again.
 - Per IP: 20 chat messages per 10 minutes, 2 indexing jobs per hour (in memory, single instance).
 - A daily message cap across the whole demo.
-- No LLM call when retrieval finds nothing. `max_tokens` is 400 for answers and 80 for the condense step.
+- The answer model never runs when retrieval finds nothing. With `REWRITE_ON_MISS` on, a miss costs one small rewrite call (about 150 tokens in, 20 out) before the fallback. `max_tokens` is 400 for answers, 80 for the condense step and 120 for the rewrite.
 - API keys live only on the server. IPs are hashed before logging or storage.
 
-**Estimated cost per 1,000 messages.** Fill this in from the logged averages after a day of real use. Each `done` event and each `chat_messages` row carries `tokens_in`, `tokens_out` and `cost_usd`. As a rough shape: a grounded answer sends about 1,500 to 2,500 input tokens (system prompt, five passages, recent history) and returns under 200, plus one small embedding call. At the prices in `.env.example` that is well under one dollar per 1,000 answered messages. No-context fallbacks cost only the embedding.
+**Estimated cost per 1,000 messages.** Measured on 2026-11-05 with gpt-6-luna and text-embedding-3-small on two indexed sites (blagojche.dev and a small Macedonian site): eleven grounded answers, including follow-ups and rewritten vague questions, averaged about 980 input tokens, 60 output tokens and $0.00013 each, so about **$0.13 per 1,000 answered messages** at the prices in `.env.example`. No-context fallbacks cost about $0.00002 each (embedding plus the rewrite call). Time to first token in that run was 1.2 to 2.5 seconds for direct questions and 3 to 4 seconds when the condense or rewrite call ran first. Each `done` event and each `chat_messages` row carries `tokens_in`, `tokens_out` and `cost_usd`, so the figure can be re-derived from real traffic.
 
 ## Known limits
 

@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     llm_model: str = Field(default="", description="Set from the current OpenAI price list at deploy.")
     embedding_model: str = "text-embedding-3-small"
+    llm_reasoning_effort: str = Field(
+        default="none",
+        description="reasoning_effort sent with chat calls. Reasoning models spend the output budget on hidden reasoning otherwise. Empty string omits the parameter.",
+    )
     embedding_dimensions: int = 1536
     llm_provider: str = Field(default="openai", description="openai, or fake for tests and offline demos")
 
@@ -39,6 +43,7 @@ class Settings(BaseSettings):
 
     # Retrieval and answering
     min_similarity: float = 0.25
+    rewrite_on_miss: bool = Field(default=True, description="When retrieval finds nothing, rewrite the message into a specific question about the site and search once more.")
     match_count: int = 6
     keep_chunks: int = 5
     max_answer_tokens: int = 400
