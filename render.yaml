@@ -12,26 +12,26 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: LLM_MODEL
-        sync: false
+        value: "gpt-6-luna"
       - key: EMBEDDING_MODEL
         value: text-embedding-3-small
       - key: SUPABASE_URL
-        sync: false
+        value: "https://gbosfrgostxveyanyvob.supabase.co"
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: ALLOWED_ORIGINS
-        sync: false
+        value: "https://website-chatbot-poc.onrender.com,https://blagojche.dev"
       - key: DEMO_ACCESS_CODE
-        generateValue: true
-      - key: DEFAULT_SITE_ID
         sync: false
+      - key: DEFAULT_SITE_ID
+        value: "6953c855-51c0-4aea-bfa2-386892838eb1"
       - key: DAILY_MESSAGE_CAP
         value: "300"
       - key: PRICE_IN_PER_1M
-        sync: false
+        value: "0.10"
       - key: PRICE_OUT_PER_1M
-        sync: false
+        value: "0.50"
       - key: PRICE_EMBED_PER_1M
-        sync: false
+        value: "0.02"
       - key: MIN_SIMILARITY
         value: "0.25"
