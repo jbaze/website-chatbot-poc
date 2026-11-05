@@ -34,4 +34,4 @@ services:
       - key: PRICE_EMBED_PER_1M
         sync: false
       - key: MIN_SIMILARITY
-        value: "0.30"
+        value: "0.25"

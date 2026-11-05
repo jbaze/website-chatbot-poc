@@ -87,7 +87,7 @@ pytest
 | `DEFAULT_SITE_ID` | The preloaded site shown on the demo page. |
 | `DAILY_MESSAGE_CAP` | Global cap on user messages per day, counted in `chat_messages`. |
 | `PRICE_IN_PER_1M`, `PRICE_OUT_PER_1M`, `PRICE_EMBED_PER_1M` | USD per 1M tokens for cost estimates, from the current price list. |
-| `MIN_SIMILARITY` | Retrieval threshold. Start at 0.30 and tune on the preloaded site. |
+| `MIN_SIMILARITY` | Retrieval threshold. 0.25 was tuned on blagojche.dev with text-embedding-3-small: off-topic questions scored at most 0.21, on-topic ones at least 0.28. |
 | `LLM_PROVIDER`, `STORE` | `openai`/`fake` and `supabase`/`memory`. Defaults pick the real ones. |
 
 ## Embed on any website

@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     price_embed_per_1m: float = 0.0
 
     # Retrieval and answering
-    min_similarity: float = 0.30
+    min_similarity: float = 0.25
     match_count: int = 6
     keep_chunks: int = 5
     max_answer_tokens: int = 400
